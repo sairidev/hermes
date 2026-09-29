@@ -136,7 +136,16 @@ function uvEnv(cfg) {
   };
 }
 
-async function ensureHermesVenv(cfg, uv) {
+// Prebuilt image: outputs exist but the runtime is read-only. Use them as-is
+// instead of trying (and failing) to rebuild inside /opt.
+function prebuiltOk(cfg, what, ready) {
+  if (cfg.runtimeWritable) return false;
+  if (!ready) throw new Error(`${what} tidak ada di image dan folder runtime read-only (${cfg.runtimeDir}). Build ulang image-nya.`);
+  log.ok(`${what}: pakai versi bawaan image`, 'setup');
+  return true;
+}
+
+async function ensureHermesVenv(cfg, getUv) {
   const src = cfg.hermesSrc;
   const extras = [...new Set(cfg.hermes.extras)].sort();
   const pyVersion = String(pmLock(cfg).python.version).split('+')[0].split('.').slice(0, 2).join('.');
@@ -153,6 +162,8 @@ async function ensureHermesVenv(cfg, uv) {
     log.ok('Python env Hermes sudah siap', 'setup');
     return paths;
   }
+  if (prebuiltOk(cfg, 'Python env Hermes', exists(paths.hermes))) return paths;
+  const uv = await getUv();
 
   log.step(`Install Python ${pyVersion} + dependency Hermes (extras: ${extras.join(', ')}) — pertama kali bisa 2-5 menit`);
   const args = ['sync', '--frozen', '--no-dev', '--python', pyVersion, '--managed-python'];
@@ -189,6 +200,7 @@ async function ensureHermesFrontend(cfg, venv, nodeInfo) {
     log.ok('Web dashboard Hermes sudah ter-build', 'setup');
     return out;
   }
+  if (prebuiltOk(cfg, 'Web dashboard Hermes', ready)) return out;
 
   const env = nodeEnv(cfg, nodeInfo, {
     npm_config_install_links: 'false',

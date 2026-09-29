@@ -1,7 +1,9 @@
 .git
+.github
 .env
 data
 .runtime
 node_modules
 **/node_modules
 **/__pycache__
+**/*.pyc

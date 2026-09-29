@@ -25,11 +25,20 @@ function parseDotenv(text) {
 
 const truthy = (v) => /^(1|true|yes|on|ya)$/i.test(String(v || '').trim());
 
+function isWritable(dir) {
+  try { fs.accessSync(dir, fs.constants.W_OK); return true; } catch { return false; }
+}
+
 function loadConfig(root, { setupOnly = false } = {}) {
-  const envFile = path.join(root, '.env');
+  // ENV_FILE lets the Docker/Pterodactyl image keep .env in /home/container
+  // while the app itself lives read-only in /opt/hermes-web.
+  const envFile = process.env.ENV_FILE ? path.resolve(process.env.ENV_FILE) : path.join(root, '.env');
   if (!setupOnly && !exists(envFile) && exists(path.join(root, '.env.example'))) {
-    fs.copyFileSync(path.join(root, '.env.example'), envFile);
-    log.info('File .env belum ada — dibuat dari .env.example (edit lewat File Manager kalau perlu).');
+    try {
+      fs.mkdirSync(path.dirname(envFile), { recursive: true });
+      fs.copyFileSync(path.join(root, '.env.example'), envFile);
+      log.info(`File .env belum ada — dibuat di ${envFile} (edit lewat File Manager kalau perlu).`);
+    } catch { /* read-only location: env vars only */ }
   }
   const dotenv = exists(envFile) ? parseDotenv(fs.readFileSync(envFile, 'utf8')) : {};
 
@@ -45,7 +54,10 @@ function loadConfig(root, { setupOnly = false } = {}) {
   const dataDir = path.resolve(root, get('DATA_DIR', 'data'));
   const runtimeDir = path.resolve(root, get('RUNTIME_DIR', '.runtime'));
   fs.mkdirSync(dataDir, { recursive: true });
-  fs.mkdirSync(runtimeDir, { recursive: true });
+  try { fs.mkdirSync(runtimeDir, { recursive: true }); } catch { /* prebuilt, read-only image */ }
+  // In the Docker image the runtime is baked and owned by root: nothing may be
+  // (re)built there, and everything that changes goes to the data dir instead.
+  const runtimeWritable = isWritable(runtimeDir);
 
   // Secrets are generated once and persisted, so sessions and 9Router's
   // encrypted API keys survive restarts.
@@ -85,6 +97,10 @@ function loadConfig(root, { setupOnly = false } = {}) {
     hermesSrc: path.join(root, 'hermes'),
     dataDir,
     runtimeDir,
+    runtimeWritable,
+    envFile,
+    pidDir: path.join(dataDir, '.pids'),
+    pmToolsDir: runtimeWritable ? path.join(runtimeDir, 'pm-tools') : path.join(dataDir, '.pm-tools'),
     isPterodactyl,
     generatedPassword: generatedPassword && !get('ADMIN_PASSWORD'),
     secretsFile,

@@ -57,7 +57,7 @@ const hermesLogFilter = (text) => !/"(GET|HEAD) \/(api\/(status|ws|pty|sessions|
 
 function makeServices(ctx) {
   const { cfg, venv } = ctx;
-  const pidDir = path.join(cfg.runtimeDir, 'pids');
+  const { pidDir } = cfg;
   const env = serviceEnv(ctx);
   const services = {
     // Bound to 0.0.0.0 on an internal port: this makes Hermes enforce login on
@@ -88,10 +88,8 @@ async function runSetup(ctx) {
     step('Mengecek Node.js');
     ctx.nodeInfo = await ensureNode(cfg);
     log.ok(`Node.js ${ctx.nodeInfo.version}`, 'setup');
-    step('Menyiapkan uv (installer Python)');
-    const uv = await ensureUv(cfg);
     step('Install Python 3.14 + dependency Hermes (2-5 menit)');
-    ctx.venv = await ensureHermesVenv(cfg, uv);
+    ctx.venv = await ensureHermesVenv(cfg, () => { step('Menyiapkan uv (installer Python)'); return ensureUv(cfg); });
     step('Build web dashboard Hermes (2-5 menit)');
     ctx.front = await ensureHermesFrontend(cfg, ctx.venv, ctx.nodeInfo);
     step('Mengecek koneksi ke 9Router');
@@ -152,6 +150,7 @@ function attachConsole(ctx) {
           if (await runSetup(ctx)) startServices(ctx);
           break;
         case 'rebuild':
+          if (!cfg.runtimeWritable) { log.info('Ini image siap pakai: update = build image baru di GitHub lalu restart server.'); break; }
           await stopAll(ctx);
           rmrf(path.join(cfg.runtimeDir, 'stamps'));
           if (await runSetup(ctx)) startServices(ctx);
@@ -209,7 +208,7 @@ async function main(argv) {
   if (setupOnly) {
     // Used by the Dockerfile to bake Python/venv/dashboard into the image.
     ctx.nodeInfo = await ensureNode(cfg);
-    const venv = await ensureHermesVenv(cfg, await ensureUv(cfg));
+    const venv = await ensureHermesVenv(cfg, () => ensureUv(cfg));
     await ensureHermesFrontend(cfg, venv, ctx.nodeInfo);
     log.ok('Setup selesai (--setup-only).');
     process.exit(0);

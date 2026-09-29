@@ -1,23 +1,24 @@
 # VPS: isi .env (NINEROUTER_URL, NINEROUTER_API_KEY, ADMIN_PASSWORD) lalu:
-#   docker compose up -d --build     →   http://IP-VPS:3000/
+#   docker compose up -d        →   http://IP-VPS:3000/
+# Image dibangun otomatis oleh GitHub Actions (.github/workflows/docker-publish.yml).
 services:
   hermes:
-    build: .
-    image: hermes-agent-web:latest
-    container_name: hermes-agent-web
+    image: ghcr.io/sairidev/hermes:latest
+    # Mau build sendiri dari source? Hapus baris image di atas, aktifkan ini:
+    # build:
+    #   context: .
+    #   dockerfile: docker/Dockerfile
+    container_name: hermes
     restart: unless-stopped
     ports:
       - "3000:3000"
     env_file:
       - path: .env
         required: false
-    environment:
-      DATA_DIR: /data
-      PORT: "3000"
     volumes:
-      - hermes-data:/data
+      - hermes-data:/home/container
     # Kalau 9Router jalan di host yang sama (bukan container), pakai
-    # NINEROUTER_URL=http://host.docker.internal:20128 dan aktifkan baris ini:
+    # NINEROUTER_URL=http://host.docker.internal:20128 dan aktifkan:
     # extra_hosts:
     #   - "host.docker.internal:host-gateway"
 

@@ -1,0 +1,102 @@
+{
+    "_comment": "DO NOT EDIT: FILE GENERATED AUTOMATICALLY BY PTERODACTYL PANEL - PTERODACTYL.IO",
+    "meta": {
+        "version": "PTDL_v2",
+        "update_url": null
+    },
+    "exported_at": "2026-09-29T00:00:00+00:00",
+    "name": "Hermes Agent · SAIRI",
+    "author": "sairidev@gmail.com",
+    "description": "Hermes Agent (web dashboard + chat) yang connect ke 9Router untuk Claude, GPT, Gemini, dan 60+ provider. Image siap pakai: tidak ada install/build di panel.",
+    "features": null,
+    "docker_images": {
+        "Hermes (latest)": "ghcr.io/sairidev/hermes:latest"
+    },
+    "file_denylist": [],
+    "startup": "hermes-web",
+    "config": {
+        "files": "{}",
+        "startup": "{\"done\": \"Hermes siap dipakai\"}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Hermes sudah ter-install di dalam image (dibangun di GitHub Actions),\n# jadi installer ini hanya menyiapkan folder data.\nmkdir -p /mnt/server/data\necho \"Hermes siap. Isi URL + API key 9Router di tab Startup, lalu klik Start.\"\n",
+            "container": "ghcr.io/parkervcp/installers:debian",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "URL 9Router",
+            "description": "Alamat 9Router kamu, contoh http://123.45.67.89:20128 atau https://9router.domainkamu.com",
+            "env_variable": "NINEROUTER_URL",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:255",
+            "field_type": "text"
+        },
+        {
+            "name": "API Key 9Router",
+            "description": "Dari dashboard 9Router → API Keys → Create.",
+            "env_variable": "NINEROUTER_API_KEY",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:255",
+            "field_type": "text"
+        },
+        {
+            "name": "Model",
+            "description": "ID model / nama combo di 9Router, contoh kr/claude-sonnet-4.5. Ketik 'models' di console untuk melihat daftar.",
+            "env_variable": "HERMES_MODEL",
+            "default_value": "kr/claude-sonnet-4.5",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:200",
+            "field_type": "text"
+        },
+        {
+            "name": "Admin Password",
+            "description": "Password login dashboard Hermes (username: admin). Kosong = dibuat acak, lihat console.",
+            "env_variable": "ADMIN_PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:128",
+            "field_type": "text"
+        },
+        {
+            "name": "Gateway Bot",
+            "description": "true = jalankan bot Hermes (Telegram/Discord). Token bot diatur di dashboard Hermes.",
+            "env_variable": "HERMES_GATEWAY",
+            "default_value": "false",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:true,false",
+            "field_type": "text"
+        },
+        {
+            "name": "Show IP",
+            "description": "true menampilkan IP publik di banner. Berlaku setelah restart.",
+            "env_variable": "SHOW_IP",
+            "default_value": "false",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:true,false",
+            "field_type": "text"
+        },
+        {
+            "name": "Start Prompt Timeout",
+            "description": "Detik menunggu jawaban y/n sebelum Hermes otomatis dijalankan.",
+            "env_variable": "START_PROMPT_TIMEOUT",
+            "default_value": "30",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|min:1|max:600",
+            "field_type": "text"
+        }
+    ]
+}

@@ -20,9 +20,12 @@ Hermes di sini **tidak menjalankan model sendiri**. Semua model diambil dari **9
 |---|---|
 | `index.js`, `launcher/` | Launcher: install otomatis, cek koneksi 9Router, jalankan Hermes, halaman "sedang menyiapkan" |
 | `hermes/` | Source Hermes Agent (dirampingkan: tanpa test, website, dan aplikasi desktop) |
+| `docker/Dockerfile` | Image siap pakai (multi-stage), di-build di GitHub Actions |
+| `docker/entrypoint.sh` | Banner HERMES + info sistem + status 9Router, tanya y/n, lalu start |
+| `docker/egg-hermes.json` | Egg Pterodactyl yang memakai image `ghcr.io/sairidev/hermes:latest` |
+| `.github/workflows/docker-publish.yml` | Build, tes (Docker + simulasi Pterodactyl), lalu publish image ke GHCR |
+| `docker-compose.yml` | Untuk VPS |
 | `.env.example` | Semua pengaturan, dengan penjelasan |
-| `pterodactyl/egg-hermes-agent-web.json` | Egg Pterodactyl (untuk admin panel) |
-| `Dockerfile`, `docker-compose.yml` | Untuk VPS / Docker |
 
 Folder yang dibuat otomatis dan **tidak** ikut ke GitHub: `.env`, `data/` (config, sesi, memori, password), `.runtime/` (Python, venv, hasil build).
 
@@ -61,51 +64,59 @@ Bisa juga pakai **GitHub Desktop**: *Add local repository* → *Publish reposito
 
 ## 2. Pterodactyl
 
-### A. Pakai egg **Node.js** yang sudah ada (tanpa admin)
+Ada dua cara. **Cara A disarankan**, terutama untuk server RAM 1 GB: semua sudah di-build di GitHub, jadi panel tinggal menarik image.
 
-1. Buat/pilih server dengan egg **Node.js** (generic).
-2. **Startup → Docker Image**: pilih **Node.js 22** (atau 24). Jangan Alpine.
-3. **Startup → variabel**:
-   - **Git Repo Address**: `https://github.com/USERNAME/hermes-agent-web`
-   - **Main file**: `index.js`
-   - **Auto Update**: `1` (opsional)
-4. **Settings → Reinstall Server** supaya repo di-clone.
-   Tanpa Git: upload zip lewat **File Manager** → *Unarchive*. Zip ini berisi folder `hermes-agent-web/`: pindahkan isinya ke folder paling atas, **atau** isi *Main file* dengan `hermes-agent-web/index.js`.
-5. **File Manager** → salin `.env.example` jadi `.env`, lalu isi:
-   ```env
-   NINEROUTER_URL=http://IP-9ROUTER:PORT
-   NINEROUTER_API_KEY=sk-...
-   HERMES_MODEL=kr/claude-sonnet-4.5
-   ADMIN_PASSWORD=password-kuat-kamu
-   ```
-6. **Start**. Start pertama butuh **5–10 menit**. Selama itu, membuka alamat server menampilkan halaman "Sedang menyiapkan Hermes…".
+### A. Egg + image siap pakai (seperti 9Router SAIRI)
 
-### B. Import egg khusus (admin panel)
+Sekali saja di GitHub:
+1. Push repo ini. Tab **Actions** otomatis menjalankan workflow **Docker**. Tunggu sampai ✓ (± 10 menit untuk build pertama).
+2. GitHub → foto profil → **Packages** → `hermes` → **Package settings** → **Change visibility** → **Public**. Tanpa ini, panel tidak bisa menarik image.
 
-1. Admin → **Nests → Import Egg** → pilih `pterodactyl/egg-hermes-agent-web.json`.
-2. Buat server, isi **Git Repo Address**, **URL 9Router**, **API Key 9Router**, **Model**, **Admin Password**.
-3. Install lalu Start. Status jadi *Running* saat console menampilkan `Hermes siap dipakai`.
+Di panel:
+1. Admin → **Nests → Import Egg** → `docker/egg-hermes.json`.
+2. Buat server dengan egg **Hermes Agent · SAIRI** (RAM mulai 768 MB, disk 1 GB).
+3. Tab **Startup**: isi **URL 9Router**, **API Key 9Router**, **Model**, **Admin Password**.
+4. **Start**. Console menampilkan banner HERMES, info RAM/disk, dan status 9Router (✓ online · API key OK). Jawab `y` atau tunggu, lalu buka `http://IP:PORT/` setelah muncul `Hermes siap dipakai`.
+
+Jawab `n` untuk masuk shell: `hermes-web` menjalankan dashboard, `hermes chat` untuk chat di terminal. Detail image ada di [`docker/README.md`](docker/README.md).
+
+### B. Egg **Node.js** biasa (tanpa admin, build di panel)
+
+1. Buat/pilih server dengan egg **Node.js** (generic), **Docker Image: Node.js 22** (jangan Alpine).
+2. **Startup**: **Git Repo Address** `https://github.com/USERNAME/hermes`, **Main file** `index.js`, **Auto Update** `1`.
+3. **Settings → Reinstall Server** supaya repo di-clone (atau upload zip lewat File Manager lalu *Unarchive*).
+4. **File Manager** → salin `.env.example` jadi `.env`, isi `NINEROUTER_URL`, `NINEROUTER_API_KEY`, `HERMES_MODEL`, `ADMIN_PASSWORD`.
+5. **Start**. Start pertama butuh 5–10 menit karena Python dan dashboard di-build di panel. Untuk RAM 1 GB, tambahkan `BUILD_MEMORY_MB=700` di `.env`.
 
 ### Resource
 
-| | Minimal | Disarankan |
+| | Cara A (image) | Cara B (build di panel) |
 |---|---|---|
-| RAM | 1.5 GB | 2 GB (build dashboard saat start pertama) |
-| Disk | 2 GB | 3 GB+ |
-| Port | 1 alokasi | — |
-
-Setelah terpasang, pemakaian disk sekitar 450 MB, dan RAM saat jalan biasanya jauh di bawah 1 GB.
+| RAM | 768 MB – 1 GB | 1.5–2 GB saat start pertama |
+| Disk | ± 100 MB + data | ± 2 GB saat start pertama, ± 450 MB setelahnya |
+| Waktu start pertama | < 1 menit | 5–10 menit |
 
 ---
 
 ## 3. VPS / Docker
 
+Pakai image yang sudah di-build GitHub Actions:
+
 ```bash
-git clone https://github.com/USERNAME/hermes-agent-web.git
-cd hermes-agent-web
+git clone https://github.com/USERNAME/hermes.git
+cd hermes
 cp .env.example .env        # isi NINEROUTER_URL, NINEROUTER_API_KEY, ADMIN_PASSWORD
-docker compose up -d --build
+docker compose up -d
 docker compose logs -f
+```
+
+Atau langsung satu perintah:
+
+```bash
+docker run -d --name hermes --restart unless-stopped -p 3000:3000 \
+  -e NINEROUTER_URL=http://IP-9ROUTER:20128 -e NINEROUTER_API_KEY=sk-... \
+  -e HERMES_MODEL=kr/claude-sonnet-4.5 -e ADMIN_PASSWORD=password-kuat \
+  -v hermes-data:/home/container ghcr.io/sairidev/hermes:latest
 ```
 
 Tanpa Docker (Node.js 22, Linux x64/arm64): `cp .env.example .env && node index.js`.
@@ -158,7 +169,7 @@ Buka `http://IP:PORT/` → login → tab **Chat**. Model juga bisa diganti dari 
 | `models` / `models claude` | Daftar model dari 9Router (bisa difilter) |
 | `restart` | Restart Hermes |
 | `retry` | Ulangi setup yang gagal |
-| `rebuild` | Install ulang Python env + build ulang dashboard |
+| `rebuild` | Install ulang Python env + build ulang dashboard (cara B saja; image = build ulang di GitHub) |
 | `stop` | Matikan dengan rapi |
 
 ---
@@ -189,8 +200,9 @@ Log Hermes ada di `data/hermes/logs/`.
 
 ## 9. Update
 
-- **Pterodactyl + Auto Update = 1**: push ke GitHub lalu restart. Launcher hanya membangun ulang bagian yang berubah.
-- **Docker**: `git pull && docker compose up -d --build`.
+- **Egg image (cara A)**: push ke `main` → tunggu ✓ di tab Actions → **Restart** server di panel (image terbaru otomatis ditarik). Data di `/home/container` tetap aman.
+- **Egg Node.js (cara B)**: push ke GitHub lalu restart (Auto Update = 1). Launcher hanya membangun ulang bagian yang berubah.
+- **Docker / VPS**: `docker compose pull && docker compose up -d`.
 
 ---
 

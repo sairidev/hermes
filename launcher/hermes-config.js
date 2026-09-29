@@ -27,7 +27,7 @@ function hermesEnv(cfg, extra = {}) {
     ...process.env,
     HERMES_HOME: cfg.hermes.home,
     // Anything Hermes' package manager does fetch lands in .runtime, not in data/.
-    HERMES_RUNTIME_DIR: path.join(cfg.runtimeDir, 'pm-tools'),
+    HERMES_RUNTIME_DIR: cfg.pmToolsDir,
     PYTHONUNBUFFERED: '1',
     ...extra,
   };
