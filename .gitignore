@@ -1,0 +1,18 @@
+# Rahasia & data (JANGAN di-push ke GitHub)
+.env
+data/
+
+# Hasil install/build launcher (dibuat ulang otomatis)
+.runtime/
+node_modules/
+hermes/node_modules/
+hermes/web/node_modules/
+hermes/ui-tui/node_modules/
+hermes/apps/shared/node_modules/
+hermes/.venv/
+hermes/hermes_cli/web_dist/
+hermes/ui-tui/dist/
+hermes/hermes_agent.egg-info/
+__pycache__/
+*.pyc
+.DS_Store

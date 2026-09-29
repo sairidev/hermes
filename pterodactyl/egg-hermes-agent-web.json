@@ -1,0 +1,143 @@
+{
+    "_comment": "Hermes Agent (web) yang connect ke 9Router terpisah. Import di Admin > Nests > Import Egg.",
+    "meta": {
+        "version": "PTDL_v2",
+        "update_url": null
+    },
+    "exported_at": "2026-09-28T00:00:00+00:00",
+    "name": "Hermes Agent (9Router)",
+    "author": "admin@example.com",
+    "description": "Hermes Agent dengan web dashboard + chat. Model AI diambil dari 9Router kamu yang berjalan terpisah (Claude, GPT, Gemini, 60+ provider).",
+    "features": null,
+    "docker_images": {
+        "Node.js 22 (disarankan)": "ghcr.io/parkervcp/yolks:nodejs_22",
+        "Node.js 24": "ghcr.io/parkervcp/yolks:nodejs_24"
+    },
+    "file_denylist": [],
+    "startup": "if [[ -d .git ]] && [[ \"{{AUTO_UPDATE}}\" == \"1\" ]]; then git pull; fi; node index.js",
+    "config": {
+        "files": "{}",
+        "startup": "{\"done\": \"Hermes siap dipakai\"}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Installer egg Hermes Agent (web): hanya clone repo GitHub kamu.\n# Python, dependency, dan build dashboard terjadi otomatis saat server START pertama.\napt-get update -y >/dev/null 2>&1 || true\napt-get install -y git ca-certificates >/dev/null 2>&1 || true\nmkdir -p /mnt/server\ncd /mnt/server || exit 1\n\nif [ -z \"${GIT_ADDRESS}\" ]; then\n  echo \"GIT_ADDRESS kosong. Upload isi repo lewat File Manager, lalu start server.\"\n  exit 0\nfi\n\nGIT_ADDRESS=\"${GIT_ADDRESS%/}\"\n[[ \"${GIT_ADDRESS}\" != *.git ]] && GIT_ADDRESS=\"${GIT_ADDRESS}.git\"\nif [ -n \"${USERNAME}\" ] && [ -n \"${ACCESS_TOKEN}\" ]; then\n  GIT_URL=\"https://${USERNAME}:${ACCESS_TOKEN}@$(echo -e \"${GIT_ADDRESS}\" | cut -d/ -f3-)\"\nelse\n  GIT_URL=\"${GIT_ADDRESS}\"\nfi\n\nif [ -d .git ]; then\n  echo \"Repo sudah ada, git pull...\"\n  git pull || true\nelif [ -n \"$(ls -A /mnt/server 2>/dev/null)\" ]; then\n  echo \"Folder server tidak kosong dan bukan repo git; clone dilewati.\"\nelse\n  git clone --depth 1 --single-branch --branch \"${BRANCH:-main}\" \"${GIT_URL}\" . || { echo \"Clone gagal. Cek GIT_ADDRESS/BRANCH/token.\"; exit 1; }\nfi\nchown -R 988:988 /mnt/server 2>/dev/null || true\necho \"Selesai. Klik Start: instalasi pertama 5-10 menit, pantau di console.\"\n",
+            "container": "ghcr.io/parkervcp/installers:debian",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Git Repo Address",
+            "description": "URL repo GitHub kamu, contoh https://github.com/namakamu/hermes-agent-web",
+            "env_variable": "GIT_ADDRESS",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string",
+            "field_type": "text"
+        },
+        {
+            "name": "Branch",
+            "description": "Branch yang di-clone.",
+            "env_variable": "BRANCH",
+            "default_value": "main",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:64",
+            "field_type": "text"
+        },
+        {
+            "name": "Auto Update",
+            "description": "1 = git pull setiap start (update otomatis dari GitHub).",
+            "env_variable": "AUTO_UPDATE",
+            "default_value": "1",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        },
+        {
+            "name": "Git Username",
+            "description": "Username GitHub (hanya untuk repo private).",
+            "env_variable": "USERNAME",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string",
+            "field_type": "text"
+        },
+        {
+            "name": "Git Access Token",
+            "description": "Personal access token GitHub (hanya untuk repo private).",
+            "env_variable": "ACCESS_TOKEN",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string",
+            "field_type": "text"
+        },
+        {
+            "name": "URL 9Router",
+            "description": "Alamat 9Router kamu, contoh http://123.45.67.89:20128 atau https://9router.domainkamu.com",
+            "env_variable": "NINEROUTER_URL",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:255",
+            "field_type": "text"
+        },
+        {
+            "name": "API Key 9Router",
+            "description": "Dari dashboard 9Router → API Keys.",
+            "env_variable": "NINEROUTER_API_KEY",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:255",
+            "field_type": "text"
+        },
+        {
+            "name": "Model",
+            "description": "ID model / nama combo di 9Router, contoh kr/claude-sonnet-4.5",
+            "env_variable": "HERMES_MODEL",
+            "default_value": "kr/claude-sonnet-4.5",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:200",
+            "field_type": "text"
+        },
+        {
+            "name": "Admin Password",
+            "description": "Password login dashboard Hermes. Kosong = dibuat acak (lihat console).",
+            "env_variable": "ADMIN_PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:128",
+            "field_type": "text"
+        },
+        {
+            "name": "Extras Hermes",
+            "description": "Extra Python Hermes, pisahkan koma. Tambah telegram/discord untuk bot.",
+            "env_variable": "HERMES_EXTRAS",
+            "default_value": "web,pty,mcp",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:200",
+            "field_type": "text"
+        },
+        {
+            "name": "Jalankan Gateway",
+            "description": "true = jalankan hermes gateway (bot Telegram/Discord/dll).",
+            "env_variable": "HERMES_GATEWAY",
+            "default_value": "false",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:true,false",
+            "field_type": "text"
+        }
+    ]
+}

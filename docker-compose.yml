@@ -1,0 +1,25 @@
+# VPS: isi .env (NINEROUTER_URL, NINEROUTER_API_KEY, ADMIN_PASSWORD) lalu:
+#   docker compose up -d --build     →   http://IP-VPS:3000/
+services:
+  hermes:
+    build: .
+    image: hermes-agent-web:latest
+    container_name: hermes-agent-web
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      DATA_DIR: /data
+      PORT: "3000"
+    volumes:
+      - hermes-data:/data
+    # Kalau 9Router jalan di host yang sama (bukan container), pakai
+    # NINEROUTER_URL=http://host.docker.internal:20128 dan aktifkan baris ini:
+    # extra_hosts:
+    #   - "host.docker.internal:host-gateway"
+
+volumes:
+  hermes-data:

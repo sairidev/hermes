@@ -1,0 +1,15 @@
+{
+  "name": "hermes-agent-web",
+  "version": "1.0.0",
+  "description": "Hermes Agent sebagai web app (dashboard + chat) yang memakai 9Router sebagai sumber model — siap GitHub, Pterodactyl, dan Docker",
+  "private": true,
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "setup": "node index.js --setup-only"
+  },
+  "engines": {
+    "node": ">=20.19"
+  },
+  "license": "MIT"
+}
